@@ -1,0 +1,6 @@
+[workspace]
+members = ["tempos", "tempos-mom", "tempos-invoker", "tempos-trigger"]
+
+[workspace.dependencies]
+nix = "0.26.2"
+socket2 = "0.4.7"

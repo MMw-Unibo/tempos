@@ -1,0 +1,19 @@
+[package]
+name = "tempos-invoker"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.56"
+clap = { version = "3.1.18", features = ["derive"] }
+ctrlc = "3.2.1"
+env_logger = "0.9.0"
+log = "0.4.14"
+rand = "0.8.5"
+serde = { version = "1.0.137", features = ["derive"] }
+socket2 = "0.4.4"
+tempos = { path = "../tempos/" }
+toml = "0.5.9"
+tokio = { version = "1.18.2", features = ["rt", "net", "time"] }
