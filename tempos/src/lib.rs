@@ -71,7 +71,7 @@ pub fn normalize_timestamp_ns(ts: u64, base: u64) -> u64 {
     tmp * base
 }
 
-pub fn calculate_txtime(now: u64, period: u64, txtime: u64) {
+pub fn calculate_txtime(now: u64, period: u64, txtime: u64) -> u64 {
     /*
      * ^
      * |    threshold
@@ -90,4 +90,31 @@ pub fn calculate_txtime(now: u64, period: u64, txtime: u64) {
     let request_offset = now - now_normalized;
 
     let mut send_time = txtime;
+
+    let rt_start_offset = period - txtime;
+    let rt_end_offset = period - request_offset;
+
+    let dynamic_time = true;
+    let threshold_ns = 10;
+    let has_rt_slot = true;
+    if has_rt_slot {
+        if dynamic_time {
+            send_time = now + threshold_ns;
+        } else {
+            if request_offset < rt_end_offset && request_offset + threshold_ns > txtime {
+                send_time = now_normalized + txtime;
+            } else {
+                // NOTE(garbu): We are in the BE slot, so we add the period
+                //      to the current time in order to send the message
+                //      in the next available window and RT slot.
+                send_time = now_normalized + period + txtime;
+            }
+        }
+    } else {
+        // There is no RT slot.
+        // TODO(garbu): Should we send the message now or in the next period?
+        send_time = now;
+    }
+
+    send_time
 }

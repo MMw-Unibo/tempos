@@ -1,13 +1,11 @@
 mod config;
 mod task;
 
-use std::collections::{HashMap, HashSet};
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
+use std::collections::HashMap;
+use std::net::{SocketAddr, UdpSocket};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
-
-use tokio::task::futures::TaskLocalFuture;
 
 struct UdpAdapter {
     // source_sock: UdpSocket,
@@ -63,6 +61,7 @@ struct Node {
 struct Core {
     nodes: HashMap<u32, Node>,
     topics: HashMap<String, Vec<u32>>,
+    // topics: HashMap<String, (Vec<u32>, Vec<u32>)>,
 }
 
 impl Core {
@@ -74,6 +73,7 @@ impl Core {
     }
 
     pub fn add_node(&mut self, id: u32, channel: SocketAddr) {
+        log::debug!("adding node {} at {}", id, channel);
         let node = Node {
             id: id,
             load: 0,
@@ -104,23 +104,51 @@ impl Core {
 fn main() -> anyhow::Result<()> {
     env_logger::init();
 
-    let sock = UdpSocket::bind("0.0.0.0:8080")?;
-    let mut buf = [0; 1024];
+    let be_quality_addr = std::env::var("BQADDR")?;
+    let strict_quality_addr = std::env::var("SQADDR")?;
+
+    log::info!(
+        "Starting TEMPOS MOM with BQADDR={} and SQADDR={}",
+        be_quality_addr,
+        strict_quality_addr
+    );
+
+    let running = Arc::new(AtomicBool::new(true));
+    let r = running.clone();
+    ctrlc::set_handler(move || {
+        r.store(false, std::sync::atomic::Ordering::Relaxed);
+    })?;
+
+    let r = running.clone();
+    let t1 = std::thread::spawn(move || {
+        main_func(&be_quality_addr, r).unwrap();
+    });
+
+    let t2 = std::thread::spawn(move || {
+        main_func(&strict_quality_addr, running).unwrap();
+    });
+
+    t1.join().unwrap();
+    t2.join().unwrap();
+
+    Ok(())
+}
+
+fn main_func(addr: &str, r: Arc<AtomicBool>) -> anyhow::Result<()> {
+    let sock = UdpSocket::bind(addr)?;
+
+    let mut buf = [0; 2048];
     let mut msg_type;
-
-    // setup the core
     let mut core = Core::new();
-
-    // make the socket non-blocking
     sock.set_read_timeout(Some(Duration::from_millis(100)))?;
 
-    loop {
+    while r.load(Ordering::Relaxed) {
         // receive a message handling the timeout
         let (bytes_read, addr) = match sock.recv_from(&mut buf) {
             Ok((bytes_read, addr)) => (bytes_read, addr),
             Err(e) => {
                 if e.kind() == std::io::ErrorKind::WouldBlock {
-                    println!("Nodes: {:?}", core.nodes);
+                    // println!("Nodes: {:?}", core.nodes);
                     continue;
                 } else {
                     return Err(e.into());
@@ -148,7 +176,6 @@ fn main() -> anyhow::Result<()> {
                 let load = f32::from_be_bytes([buf[5], buf[6], buf[7], buf[8]]);
                 // normalize the load from 0 to 100
                 let load = (load * 100.0) as u32;
-                // core.get_nodes().get(&node_id);
                 core.update_node_load(node_id, load);
             }
             tempos::msg_type::UNREGISTRATION => {
@@ -157,15 +184,27 @@ fn main() -> anyhow::Result<()> {
                 core.remove_node(node_id);
             }
             tempos::msg_type::INVOK => {
-                let topic_len = u32::from_be_bytes([buf[1], buf[2], buf[3], buf[4]]);
-                let topic = std::str::from_utf8(&buf[5..5 + topic_len as usize])?;
-                log::debug!("INVOK message for topic '{}'", topic);
+                // let msg_seq = u32::from_be_bytes([buf[1], buf[2], buf[3], buf[4]]);
+                let topic_len = u32::from_be_bytes([buf[5], buf[6], buf[7], buf[8]]);
+                let topic = std::str::from_utf8(&buf[9..9 + topic_len as usize])?;
+
                 if let Some(topic) = core.get_topic(topic) {
                     if !topic.is_empty() {
                         let node_id = topic[0];
                         let node = core.nodes.get(&node_id).unwrap();
-                        log::debug!("Sending INVOK to node {}, buffer: {:?}", node_id, &buf);
-                        sock.send_to(&buf, &node.channel)?;
+                        let addr = node.channel;
+                        log::debug!(
+                            "Sending INVOK message {:?} ({} bytes) to {}",
+                            &buf[0..bytes_read],
+                            bytes_read,
+                            addr
+                        );
+                        match sock.send_to(&buf[0..bytes_read], addr) {
+                            Ok(_) => {}
+                            Err(e) => {
+                                log::error!("Error sending INVOK message: {}", e);
+                            }
+                        }
                     }
                 } else {
                     log::warn!("No node registered for topic '{}'", topic);
