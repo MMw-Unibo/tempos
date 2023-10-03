@@ -1,0 +1,4 @@
+FROM ubuntu
+COPY ./target/release/tempos-trigger ./
+
+CMD tempos-invoker --topic=$TOPIC --addr=$ADDR --saddr=$SADDR --millis=$MILLIS

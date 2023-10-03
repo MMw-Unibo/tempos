@@ -1,0 +1,4 @@
+FROM ubuntu
+COPY ./target/release/tempos-mom ./
+
+CMD tempos-mom 
