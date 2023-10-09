@@ -1,7 +1,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "HelmDeployment.name" -}}
+{{- define "temposdeployhelm.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -10,7 +10,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "HelmDeployment.fullname" -}}
+{{- define "temposdeployhelm.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -26,16 +26,16 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "HelmDeployment.chart" -}}
+{{- define "temposdeployhelm.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "HelmDeployment.labels" -}}
-helm.sh/chart: {{ include "HelmDeployment.chart" . }}
-{{ include "HelmDeployment.selectorLabels" . }}
+{{- define "temposdeployhelm.labels" -}}
+helm.sh/chart: {{ include "temposdeployhelm.chart" . }}
+{{ include "temposdeployhelm.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -45,17 +45,17 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "HelmDeployment.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "HelmDeployment.name" . }}
+{{- define "temposdeployhelm.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "temposdeployhelm.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "HelmDeployment.serviceAccountName" -}}
+{{- define "temposdeployhelm.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
-{{- default (include "HelmDeployment.fullname" .) .Values.serviceAccount.name }}
+{{- default (include "temposdeployhelm.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}

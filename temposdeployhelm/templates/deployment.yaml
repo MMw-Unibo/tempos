@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "HelmDeployment.fullname" . }}
+  name: {{ include "temposdeployhelm.fullname" . }}
   labels:
-    {{- include "HelmDeployment.labels" . | nindent 4 }}
+    {{- include "temposdeployhelm.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
-      {{- include "HelmDeployment.selectorLabels" . | nindent 6 }}
+      {{- include "temposdeployhelm.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -18,7 +18,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "HelmDeployment.labels" . | nindent 8 }}
+        {{- include "temposdeployhelm.labels" . | nindent 8 }}
 	{{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -27,25 +27,25 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "HelmDeployment.serviceAccountName" . }}
+      serviceAccountName: {{ include "temposdeployhelm.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-        - name: "{{ .Chart.Name }}_Trigger"
+        - name: "{{ .Chart.Name }}-trigger"
           image: "{{ .Values.image.repository }}/trigger:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
-        - name: "{{ .Chart.Name }}_MOM"
+        - name: "{{ .Chart.Name }}-mom"
           image: "{{ .Values.image.repository }}/mom:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
-        - name: "{{ .Chart.Name }}_Invoker"
+        - name: "{{ .Chart.Name }}-invoker"
           image: "{{ .Values.image.repository }}/invoker:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
