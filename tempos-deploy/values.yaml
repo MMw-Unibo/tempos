@@ -1,32 +1,15 @@
-# Default values for temposdeployhelm.
+# Default values for tempos-deploy.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
 replicaCount: 1
 
 image:
-  repository: registry.gitlab.com/mmw_unibo/tempos-project/tempos
+  repository: nginx
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
 
-
-env:
-  trigger:
-    topic: "ciao"
-    addr: "0.0.0.0"
-    saddr: "192.168.17.72:8888"
-    test: "miao"
-    millis: "10"
-  mom:
-    bqaddr: "0.0.0.0:8888"
-    sqaddr: "0.0.0.0:8889"
-  inv:
-    node: "node1"
-    topics: "ciao"
-    test: "miao"
-    warm: "yes"
-  
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
@@ -57,13 +40,8 @@ securityContext: {}
   # runAsUser: 1000
 
 service:
-  trigger:
-    port: 7777
-  mom:
-    bestport: 8888
-    strictport: 8889
-  inv:
-    port: 9999
+  type: ClusterIP
+  port: 80
 
 ingress:
   enabled: false
